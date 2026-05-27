@@ -1,34 +1,64 @@
 #!/usr/bin/env bash
+#
+# Homebrew package installation (standalone)
+# This is also called by the main setup.sh script.
+#
 
-# Abort on error
 set -e
 
-echo "Checking if Homebrew is already installed..."; 
+echo "Checking if Homebrew is already installed..."
 
-# Checks if Homebrew is installed
-# Credit: https://gist.github.com/codeinthehole/26b37efa67041e1307db
-if test ! $(which brew); then
-  echo "Installing Homebrew...";
-  yes | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+if ! command -v brew &>/dev/null; then
+    echo "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    if [[ $(uname -m) == "arm64" ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
 else
-  echo "Homebrew is already installed...";
+    echo "Homebrew is already installed."
 fi
 
-# Install the essential brews
-brew install git
-brew install nvm
-brew install yarn
+brew update
 
-brew install --cask visual-studio-code
-brew install --cask google-chrome
-brew install --cask arc
-brew install --cask postman
-brew install --cask raycast
+# CLI tools
+PACKAGES=(
+    git
+    gh
+)
 
-# Update and Upgrade
-echo "Updating and upgrading Homebrew..."; echo;
-yes | brew update
-yes | brew upgrade
+echo "Installing CLI packages..."
+brew install "${PACKAGES[@]}" || true
 
-# Remove outdated versions from the cellar
+# GUI apps
+CASKS=(
+    brave-browser
+    cursor
+    figma
+    google-chrome
+    iterm2
+    microsoft-excel
+    microsoft-powerpoint
+    microsoft-word
+    musescore
+    raycast
+    spotify
+    visual-studio-code
+)
+
+echo "Installing cask apps..."
+for cask in "${CASKS[@]}"; do
+    if brew list --cask "$cask" &>/dev/null; then
+        echo "  ✓ $cask already installed"
+    else
+        echo "  Installing $cask..."
+        brew install --cask "$cask" || echo "  ⚠ Failed: $cask"
+    fi
+done
+
+echo "Updating and upgrading Homebrew..."
+brew update
+brew upgrade
 brew cleanup
+
+echo "Homebrew setup complete."
